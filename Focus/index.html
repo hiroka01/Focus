@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#09090b">
+    <link rel="manifest" href="/manifest.webmanifest">
+
+    <title>Focus</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- PDF rendering library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- EPUB rendering library -->
+    <script src="https://cdn.jsdelivr.net/npm/epubjs/dist/epub.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        mono: {
+                            50: '#FAFFA0',
+                            100: '#F4F4F5',
+                            200: '#E4E4E7',
+                            300: '#D4D4D8',
+                            400: '#A1A1AA',
+                            500: '#71717A',
+                            600: '#52525B',
+                            700: '#3F3F46',
+                            800: '#27272A',
+                            900: '#18181B',
+                            950: '#09090B'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Segoe UI', 'Roboto', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Main Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="login.css">
+    <script>
+        if (localStorage.getItem('focus_auth_token')) {
+            document.documentElement.classList.add('authenticated');
+        }
+    </script>
+</head>
+<body>
+    <section id="auth-screen" aria-label="Sign in or register">
+        <div class="login-container" id="container">
+            <div class="form-container sign-up">
+                <form onsubmit="handleRegisterSubmit(event)" aria-label="Create an account">
+                    <h1>Registration</h1>
+                    <label class="auth-input">
+                        <span class="sr-only">Username</span>
+                        <input type="text" id="reg-name" placeholder="Name" autocomplete="name" maxlength="80" required>
+                        <span class="field-icon" aria-hidden="true">U</span>
+                    </label>
+                    <label class="auth-input">
+                        <span class="sr-only">Email</span>
+                        <input type="email" id="reg-email" placeholder="Email" autocomplete="email" required>
+                        <span class="field-icon" aria-hidden="true">@</span>
+                    </label>
+                    <label class="auth-input">
+                        <span class="sr-only">Password</span>
+                        <input type="password" id="reg-password" placeholder="Password (at least 8 characters)" autocomplete="new-password" minlength="8" required>
+                        <span class="field-icon" aria-hidden="true">●</span>
+                    </label>
+                    <button type="submit">Register</button>
+                    <p class="auth-error" id="register-error" role="alert" aria-live="assertive" hidden></p>
+                </form>
+            </div>
+
+            <div class="form-container sign-in">
+                <form onsubmit="handleLoginSubmit(event)" aria-label="Sign in">
+                    <h1>Login</h1>
+                    <label class="auth-input">
+                        <span class="sr-only">Email</span>
+                        <input type="email" id="login-email" placeholder="Email" autocomplete="email" required>
+                        <span class="field-icon" aria-hidden="true">@</span>
+                    </label>
+                    <label class="auth-input">
+                        <span class="sr-only">Password</span>
+                        <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required>
+                        <span class="field-icon" aria-hidden="true">●</span>
+                    </label>
+                    <a class="forgot-password" href="#">Forgot password?</a>
+                    <button type="submit">Login</button>
+                    <p class="auth-error" id="login-error" role="alert" aria-live="assertive" hidden></p>
+                </form>
+            </div>
+
+            <div class="toggle-container">
+                <div class="toggle">
+                    <div class="toggle-panel toggle-left">
+                        <h1>Hello, Welcome!</h1>
+                        <p>Don't have an account?</p>
+                        <button class="auth-toggle" id="register">Register</button>
+                    </div>
+                    <div class="toggle-panel toggle-right">
+                        <h1>Welcome Back!</h1>
+                        <p>Already have an account?</p>
+                        <button class="auth-toggle" id="login">Login</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="app-shell" class="hidden bg-white dark:bg-mono-950 text-mono-900 dark:text-mono-100 font-sans antialiased min-h-screen flex flex-col md:flex-row selection:bg-mono-900 selection:text-white">
+
+    <!-- DESKTOP SIDEBAR NAVIGATION -->
+    <aside class="hidden md:flex flex-col justify-between w-64 border-r border-mono-200 dark:border-mono-800 p-6 h-screen sticky top-0 bg-white dark:bg-mono-950 shrink-0">
+        <div class="space-y-8">
+            <!-- Brand Title -->
+            <div class="flex items-center justify-between">
+                <h1 class="app-logo font-sans font-black text-2xl tracking-tighter lowercase">focus</h1>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="space-y-1" id="desktop-nav">
+                <!-- Links injected via script -->
+            </nav>
+        </div>
+    </aside>
+
+    <!-- MOBILE TOP BAR -->
+    <header class="flex md:hidden items-center justify-between px-5 py-4 border-b border-mono-200 dark:border-mono-800 bg-white dark:bg-mono-950 sticky top-0 z-30">
+        <div>
+            <h1 class="app-logo font-sans font-black text-xl tracking-tighter lowercase">focus</h1>
+        </div>
+        <div class="flex items-center gap-1">
+            <button onclick="switchTab('settings')" title="Settings" aria-label="Settings" class="p-2.5 rounded-lg text-mono-600 dark:text-mono-300 hover:bg-mono-100 dark:hover:bg-mono-900">
+                <i class="fa-solid fa-gear text-sm"></i>
+            </button>
+            <button onclick="openThemeModal()" title="Appearance" aria-label="Appearance" class="p-2.5 rounded-lg text-mono-600 dark:text-mono-300 hover:bg-mono-100 dark:hover:bg-mono-900">
+                <i id="mobile-theme-icon" class="fa-solid fa-circle-half-stroke text-sm"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MOBILE NAVIGATION HORIZONTAL SCROLL -->
+    <nav class="md:hidden border-b border-mono-200 dark:border-mono-800 bg-white dark:bg-mono-950 overflow-x-auto px-4 py-2 flex space-x-1 scrollbar-none sticky top-[57px] z-20" id="mobile-nav">
+        <!-- Links injected via script -->
+    </nav>
+
+    <!-- MAIN CONTENT VIEWPORT -->
+    <main class="flex-1 p-5 md:p-10 max-w-6xl mx-auto w-full pb-20 md:pb-10 overflow-y-auto">
+        <div class="hidden md:flex justify-end items-center gap-2 mb-5">
+            <button onclick="switchTab('settings')" title="Settings" aria-label="Settings" class="p-2.5 rounded-lg text-mono-600 dark:text-mono-300 hover:bg-mono-100 dark:hover:bg-mono-900">
+                <i class="fa-solid fa-gear text-sm"></i>
+            </button>
+            <button onclick="openThemeModal()" title="Appearance" aria-label="Appearance" class="p-2.5 rounded-lg text-mono-600 dark:text-mono-300 hover:bg-mono-100 dark:hover:bg-mono-900">
+                <i id="theme-icon" class="fa-solid fa-circle-half-stroke text-sm"></i>
+            </button>
+        </div>
+
+        <!-- HOME DASHBOARD -->
+        <section id="mod-home" class="tab-content space-y-6">
+            <header class="border-b border-mono-200 dark:border-mono-800 pb-4">
+                <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">your dashboard</h2>
+                <p class="text-xs text-mono-500 font-mono mt-0.5">A summary of your focus workspace</p>
+            </header>
+
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <article class="border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950">
+                    <p class="text-[10px] text-mono-400 font-mono uppercase tracking-wider">Open tasks</p>
+                    <p id="dashboard-open-tasks" class="text-2xl font-bold mt-1">0</p>
+                </article>
+                <article class="border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950">
+                    <p class="text-[10px] text-mono-400 font-mono uppercase tracking-wider">Today's events</p>
+                    <p id="dashboard-today-events" class="text-2xl font-bold mt-1">0</p>
+                </article>
+                <article class="border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950">
+                    <p class="text-[10px] text-mono-400 font-mono uppercase tracking-wider">Study goals</p>
+                    <p id="dashboard-study-goals" class="text-2xl font-bold mt-1">0</p>
+                </article>
+                <article class="border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950">
+                    <p class="text-[10px] text-mono-400 font-mono uppercase tracking-wider">Results average</p>
+                    <p id="dashboard-results-average" class="text-2xl font-bold mt-1">0.0%</p>
+                </article>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <article class="dashboard-card">
+                    <div class="flex items-center justify-between"><h3 class="dashboard-card-title">Calendar</h3><button onclick="switchTab('calendar')" class="dashboard-link">Open</button></div>
+                    <div id="dashboard-calendar" class="dashboard-card-content"></div>
+                </article>
+                <article class="dashboard-card">
+                    <div class="flex items-center justify-between"><h3 class="dashboard-card-title">To-do lists</h3><button onclick="switchTab('tasks')" class="dashboard-link">Open</button></div>
+                    <div id="dashboard-tasks" class="dashboard-card-content"></div>
+                </article>
+                <article class="dashboard-card">
+                    <div class="flex items-center justify-between"><h3 class="dashboard-card-title">Notes</h3><button onclick="switchTab('notes')" class="dashboard-link">Open</button></div>
+                    <div id="dashboard-notes" class="dashboard-card-content"></div>
+                </article>
+                <article class="dashboard-card">
+                    <div class="flex items-center justify-between"><h3 class="dashboard-card-title">Focus timer</h3><button onclick="switchTab('timer')" class="dashboard-link">Open</button></div>
+                    <div id="dashboard-timer" class="dashboard-card-content"></div>
+                </article>
+                <article class="dashboard-card">
+                    <div class="flex items-center justify-between"><h3 class="dashboard-card-title">Journal</h3><button onclick="switchTab('journal')" class="dashboard-link">Open</button></div>
+                    <div id="dashboard-journal" class="dashboard-card-content"></div>
+                </article>
+                <article class="dashboard-card">
+                    <div class="flex items-center justify-between"><h3 class="dashboard-card-title">Books</h3><button onclick="switchTab('books')" class="dashboard-link">Open</button></div>
+                    <div id="dashboard-books" class="dashboard-card-content"></div>
+                </article>
+                <article class="dashboard-card">
+                    <div class="flex items-center justify-between"><h3 class="dashboard-card-title">Study plan</h3><button onclick="switchTab('study')" class="dashboard-link">Open</button></div>
+                    <div id="dashboard-study" class="dashboard-card-content"></div>
+                </article>
+                <article class="dashboard-card">
+                    <div class="flex items-center justify-between"><h3 class="dashboard-card-title">Today's timetable</h3><button onclick="switchTab('timetable')" class="dashboard-link">Open</button></div>
+                    <div id="dashboard-timetable" class="dashboard-card-content"></div>
+                </article>
+                <article class="dashboard-card">
+                    <div class="flex items-center justify-between"><h3 class="dashboard-card-title">Result tracker</h3><button onclick="switchTab('results')" class="dashboard-link">Open</button></div>
+                    <div id="dashboard-results" class="dashboard-card-content"></div>
+                </article>
+            </div>
+
+        </section>
+
+        <!-- 1. CALENDAR MODULE -->
+        <section id="mod-calendar" class="tab-content space-y-6 hidden">
+            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-mono-200 dark:border-mono-800 pb-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">01. calendar</h2>
+                    <p class="text-xs text-mono-500 font-mono mt-0.5">Schedule events & daily agenda</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="changeMonth(-1)" class="px-3 py-1.5 border border-mono-200 dark:border-mono-800 rounded-lg text-xs font-mono hover:bg-mono-100 dark:hover:bg-mono-900">← Prev</button>
+                    <span id="calendar-month-year" class="text-xs font-bold font-mono uppercase px-2"></span>
+                    <button onclick="changeMonth(1)" class="px-3 py-1.5 border border-mono-200 dark:border-mono-800 rounded-lg text-xs font-mono hover:bg-mono-100 dark:hover:bg-mono-900">Next →</button>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Calendar Grid -->
+                <div class="lg:col-span-2 border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950">
+                    <div class="grid grid-cols-7 text-center font-mono text-[10px] font-bold text-mono-400 uppercase mb-2 border-b border-mono-200 dark:border-mono-800 pb-2">
+                        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                    </div>
+                    <div id="calendar-days-grid" class="grid grid-cols-7 gap-1">
+                        <!-- Days injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Event Details / Quick Add -->
+                <div class="space-y-4">
+                    <div class="border border-mono-200 dark:border-mono-800 rounded-xl p-4 space-y-3 bg-white dark:bg-mono-950">
+                        <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-mono-400">Add Event</h3>
+                        <form onsubmit="handleAddEvent(event)" class="space-y-2.5">
+                            <input type="text" id="event-title" placeholder="Event title..." required class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                            <input type="date" id="event-date" required aria-label="Event date" class="calendar-date-time w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono">
+                            <input type="time" id="event-time" aria-label="Event time" class="calendar-date-time w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none font-mono">
+                            <div class="space-y-2">
+                                <label for="event-reminder" class="block text-[10px] font-mono uppercase text-mono-400">Reminder</label>
+                                <select id="event-reminder" onchange="toggleCustomReminder()" class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                                    <option value="">No reminder</option>
+                                    <option value="1440">1 day before</option>
+                                    <option value="2880">2 days before</option>
+                                    <option value="60">1 hour before</option>
+                                    <option value="120">2 hours before</option>
+                                    <option value="custom">Custom time before</option>
+                                </select>
+                                <div id="custom-reminder-fields" class="hidden gap-2">
+                                    <input type="number" id="event-reminder-value" min="1" max="365" value="30" aria-label="Custom reminder amount" class="min-w-0 flex-1 bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                                    <select id="event-reminder-unit" aria-label="Custom reminder unit" class="flex-1 bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                                        <option value="minutes">Minutes</option>
+                                        <option value="hours">Hours</option>
+                                        <option value="days">Days</option>
+                                    </select>
+                                </div>
+                                <p id="event-reminder-status" class="text-[10px] text-mono-400" role="status" aria-live="polite"></p>
+                            </div>
+                            <div class="space-y-2">
+                                <label for="event-tag" class="block text-[10px] font-mono uppercase text-mono-400">Tag</label>
+                                <select id="event-tag" class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                                    <option value="">No tag</option>
+                                    <option value="__custom__">Create custom tag...</option>
+                                </select>
+                                <div id="custom-tag-fields" class="hidden grid-cols-[1fr_auto] gap-2">
+                                    <input type="text" id="event-tag-name" maxlength="40" placeholder="Tag name (e.g. School)" aria-label="Custom tag name" class="min-w-0 bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                                    <input type="color" id="event-tag-color" value="#ef4444" aria-label="Custom tag color" class="h-9 w-12 cursor-pointer rounded-lg border border-mono-200 dark:border-mono-800 bg-mono-100 dark:bg-mono-900 p-1">
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label for="event-location" class="block text-[10px] font-mono uppercase text-mono-400">Location</label>
+                                <div class="flex gap-2">
+                                    <input type="search" id="event-location" placeholder="Add location..." aria-label="Search event location" class="min-w-0 flex-1 bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                                    <button type="button" id="search-event-location" onclick="searchEventLocation()" class="shrink-0 rounded-lg border border-mono-200 dark:border-mono-800 px-3 py-2 text-xs hover:bg-mono-100 dark:hover:bg-mono-900">Search</button>
+                                </div>
+                                <p id="event-location-status" role="status" aria-live="polite" class="text-[10px] text-mono-400"></p>
+                                <div id="event-location-results" class="hidden max-h-36 space-y-1 overflow-y-auto rounded-lg border border-mono-200 dark:border-mono-800 p-1"></div>
+                                <p class="text-[9px] text-mono-400">Location search by <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline">OpenStreetMap contributors</a>.</p>
+                            </div>
+                            <button type="submit" class="w-full py-2 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg text-xs font-semibold hover:opacity-90">Save Event</button>
+                        </form>
+                    </div>
+
+                    <div class="border border-mono-200 dark:border-mono-800 rounded-xl p-4 space-y-3 bg-white dark:bg-mono-950">
+                        <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-mono-400">Events List</h3>
+                        <div id="calendar-events-list" class="space-y-2 max-h-60 overflow-y-auto">
+                            <!-- Events list -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. TO-DO LISTS MODULE -->
+        <section id="mod-tasks" class="tab-content space-y-6 hidden">
+            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-mono-200 dark:border-mono-800 pb-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">02. to-do lists</h2>
+                    <p class="text-xs text-mono-500 font-mono mt-0.5">Minimalist task execution manager</p>
+                </div>
+            </header>
+
+            <!-- Input Box -->
+            <form onsubmit="handleAddTask(event)" class="flex items-center gap-2 p-1.5 border border-mono-200 dark:border-mono-800 rounded-xl bg-white dark:bg-mono-950">
+                <input type="text" id="task-input-title" placeholder="Type new task..." required class="flex-1 bg-transparent px-3 py-1.5 text-xs focus:outline-none">
+                <select id="task-input-priority" class="bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none">
+                    <option value="Low">Low Priority</option>
+                    <option value="Mid" selected>Mid Priority</option>
+                    <option value="High">High Priority</option>
+                </select>
+                <select id="task-input-category" class="bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none">
+                    <option value="General">General</option>
+                    <option value="Study">Study</option>
+                    <option value="Work">Work</option>
+                    <option value="Personal">Personal</option>
+                </select>
+                <button type="submit" class="px-4 py-1.5 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg text-xs font-semibold hover:opacity-90 shrink-0">Add</button>
+            </form>
+
+            <!-- Filters -->
+            <div class="flex items-center justify-between border-b border-mono-200 dark:border-mono-800 pb-2">
+                <div class="flex items-center space-x-2 font-mono text-xs" id="task-filters">
+                    <button onclick="setTaskFilter('all')" data-filter="all" class="task-filter-btn px-2.5 py-1 rounded-md bg-mono-900 text-white dark:bg-mono-100 dark:text-mono-900 font-bold">All</button>
+                    <button onclick="setTaskFilter('active')" data-filter="active" class="task-filter-btn px-2.5 py-1 rounded-md text-mono-500 hover:text-mono-900 dark:hover:text-mono-100">Active</button>
+                    <button onclick="setTaskFilter('completed')" data-filter="completed" class="task-filter-btn px-2.5 py-1 rounded-md text-mono-500 hover:text-mono-900 dark:hover:text-mono-100">Completed</button>
+                </div>
+                <span id="task-count" class="text-xs font-mono text-mono-400">0 tasks left</span>
+            </div>
+
+            <!-- Tasks Container -->
+            <div id="tasks-container" class="space-y-2">
+                <!-- Injected Tasks -->
+            </div>
+        </section>
+
+        <!-- 3. NOTES MODULE -->
+        <section id="mod-notes" class="tab-content space-y-6 hidden">
+            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-mono-200 dark:border-mono-800 pb-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">03. notes</h2>
+                    <p class="text-xs text-mono-500 font-mono mt-0.5">Plain-text notes & quick captures</p>
+                </div>
+                <button onclick="createNewNote()" class="px-3.5 py-1.5 border border-mono-900 dark:border-mono-100 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg text-xs font-semibold hover:opacity-90">+ New Note</button>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Notes Sidebar List -->
+                <div class="space-y-3">
+                    <input type="text" id="note-search" oninput="renderNotes()" placeholder="Search notes..." class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg px-3 py-2 text-xs focus:outline-none">
+                    <div id="notes-list" class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                        <!-- Injected Notes Sidebar -->
+                    </div>
+                </div>
+
+                <!-- Notes Editor View -->
+                <div class="md:col-span-2 border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950 flex flex-col space-y-3 min-h-[400px]">
+                    <div class="flex items-center justify-between border-b border-mono-200 dark:border-mono-800 pb-2">
+                        <input type="text" id="note-editor-title" oninput="saveActiveNote()" placeholder="Note title..." class="bg-transparent font-bold text-base focus:outline-none w-full">
+                        <div class="flex items-center space-x-2 shrink-0">
+                            <button onclick="togglePinActiveNote()" id="note-pin-btn" class="px-2 py-1 border border-mono-200 dark:border-mono-800 rounded text-[10px] font-mono hover:bg-mono-100 dark:hover:bg-mono-900">Pin</button>
+                            <button onclick="copyActiveNote()" class="px-2 py-1 border border-mono-200 dark:border-mono-800 rounded text-[10px] font-mono hover:bg-mono-100 dark:hover:bg-mono-900">Copy</button>
+                            <button onclick="deleteActiveNote()" class="px-2 py-1 border border-mono-200 dark:border-mono-800 rounded text-[10px] font-mono text-red-500 hover:bg-mono-100 dark:hover:bg-mono-900">Delete</button>
+                        </div>
+                    </div>
+                    <textarea id="note-editor-content" oninput="saveActiveNote()" placeholder="Write your thoughts here..." class="w-full flex-1 bg-transparent resize-none focus:outline-none text-xs leading-relaxed font-mono"></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. TIMER (POMODORO) MODULE -->
+        <section id="mod-timer" class="tab-content space-y-6 hidden">
+            <header class="border-b border-mono-200 dark:border-mono-800 pb-4">
+                <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">04. pomodoro timer</h2>
+                <p class="text-xs text-mono-500 font-mono mt-0.5">High contrast focus intervals</p>
+            </header>
+
+            <div class="max-w-md mx-auto border border-mono-200 dark:border-mono-800 rounded-2xl p-8 bg-white dark:bg-mono-950 flex flex-col items-center space-y-8">
+                <!-- Segmented Control Mode Toggle -->
+                <div class="flex p-1 bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-xl w-full text-xs font-mono">
+                    <button onclick="setTimerMode('focus')" id="timer-mode-focus" class="flex-1 py-1.5 rounded-lg bg-white dark:bg-mono-950 font-bold shadow-sm">Focus</button>
+                    <button onclick="setTimerMode('short')" id="timer-mode-short" class="flex-1 py-1.5 rounded-lg text-mono-500">Short Break</button>
+                    <button onclick="setTimerMode('long')" id="timer-mode-long" class="flex-1 py-1.5 rounded-lg text-mono-500">Long Break</button>
+                </div>
+
+                <!-- Minimal SVG Timer Display -->
+                <div class="relative w-64 h-64 flex items-center justify-center">
+                    <svg class="w-full h-full" viewBox="0 0 100 100">
+                        <circle class="text-mono-200 dark:text-mono-800" stroke-width="3" stroke="currentColor" fill="transparent" r="44" cx="50" cy="50" />
+                        <circle id="timer-progress-ring" class="text-mono-900 dark:text-mono-100 progress-ring-circle" stroke-width="3" stroke-dasharray="276.46" stroke-dashoffset="0" stroke-linecap="round" stroke="currentColor" fill="transparent" r="44" cx="50" cy="50" />
+                    </svg>
+                    <div class="absolute flex flex-col items-center">
+                        <span id="timer-display" class="text-5xl font-mono font-black tracking-tight">25:00</span>
+                        <span id="timer-label" class="text-[10px] font-mono tracking-widest text-mono-400 uppercase mt-2">Interval 1</span>
+                    </div>
+                </div>
+
+                <div id="focus-duration-controls" class="flex items-center gap-3 font-mono">
+                    <button type="button" onclick="adjustFocusDuration(-1)" aria-label="Decrease focus duration by one minute" class="w-9 h-9 border border-mono-200 dark:border-mono-800 rounded-lg text-lg hover:bg-mono-100 dark:hover:bg-mono-900">−</button>
+                    <span id="focus-duration-value" class="min-w-20 text-center text-xs text-mono-500">25 min</span>
+                    <button type="button" onclick="adjustFocusDuration(1)" aria-label="Increase focus duration by one minute" class="w-9 h-9 border border-mono-200 dark:border-mono-800 rounded-lg text-lg hover:bg-mono-100 dark:hover:bg-mono-900">+</button>
+                </div>
+
+                <!-- Timer Controls -->
+                <div class="flex items-center space-x-4">
+                    <button id="timer-toggle-btn" onclick="toggleTimer()" class="w-16 h-12 border border-mono-900 dark:border-mono-100 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-xl font-mono font-bold text-xs hover:opacity-90">
+                        START
+                    </button>
+                    <button onclick="resetTimer()" class="w-12 h-12 border border-mono-200 dark:border-mono-800 rounded-xl font-mono text-xs hover:bg-mono-100 dark:hover:bg-mono-900 flex items-center justify-center">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+                <p id="timer-notification-status" class="max-w-xs text-center text-[10px] text-mono-400" role="status" aria-live="polite"></p>
+
+                <!-- Stats Footer -->
+                <div class="grid grid-cols-2 gap-4 w-full pt-4 border-t border-mono-200 dark:border-mono-800 text-center font-mono text-xs">
+                    <div>
+                        <span class="text-[10px] text-mono-400 uppercase tracking-wider block">Sessions Done</span>
+                        <span id="timer-session-count" class="font-bold text-sm">0</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-mono-400 uppercase tracking-wider block">Focus Time</span>
+                        <span id="timer-total-mins" class="font-bold text-sm">0m</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. JOURNAL MODULE -->
+        <section id="mod-journal" class="tab-content space-y-6 hidden">
+            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-mono-200 dark:border-mono-800 pb-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">05. journal</h2>
+                    <p class="text-xs text-mono-500 font-mono mt-0.5">Minimalist daily reflection logs</p>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Entry Form -->
+                <div class="lg:col-span-2 border border-mono-200 dark:border-mono-800 rounded-xl p-5 bg-white dark:bg-mono-950 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span id="journal-date-stamp" class="text-xs font-mono font-bold text-mono-400 uppercase"></span>
+                    </div>
+                    <textarea id="journal-input-text" rows="6" placeholder="Reflect on today's progress, thoughts, or wins..." class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-3 text-xs font-mono focus:outline-none resize-none leading-relaxed"></textarea>
+                    <div class="space-y-2">
+                        <label for="journal-image-input" class="block text-xs font-mono text-mono-500">Add memory photos (up to 3)</label>
+                        <input type="file" id="journal-image-input" accept="image/*" multiple class="w-full text-xs text-mono-500 file:mr-3 file:rounded-lg file:border file:border-mono-200 file:bg-mono-100 file:px-3 file:py-2 file:text-xs dark:file:border-mono-800 dark:file:bg-mono-900">
+                        <div id="journal-image-preview" class="flex flex-wrap gap-2"></div>
+                        <p id="journal-image-status" class="text-[10px] text-mono-400" role="status" aria-live="polite"></p>
+                    </div>
+                    <div class="flex justify-end">
+                        <button id="save-journal-entry" onclick="saveJournalEntry()" class="px-4 py-2 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg text-xs font-semibold hover:opacity-90">Save Log</button>
+                    </div>
+                </div>
+
+                <!-- Past History -->
+                <div class="border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950 space-y-3">
+                    <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-mono-400">Past Reflections</h3>
+                    <div id="journal-history-list" class="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                        <!-- Journal Entries Injected -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. BOOKS MODULE -->
+        <section id="mod-books" class="tab-content space-y-6 hidden">
+            <header class="flex items-center justify-between border-b border-mono-200 dark:border-mono-800 pb-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">06. books</h2>
+                    <p class="text-xs text-mono-500 font-mono mt-0.5">Your personal document collection</p>
+                </div>
+                <div>
+                <input type="file" id="book-file-input" accept=".pdf,.epub" class="hidden" onchange="handleFileUpload(event)">
+                <button onclick="document.getElementById('book-file-input').click()" class="px-3.5 py-1.5 border border-mono-900 dark:border-mono-100 text-xs font-mono font-medium rounded hover:bg-mono-100 dark:hover:bg-mono-800 transition-colors">
+                    + Add Book
+                </button>
+                </div>
+            </header>
+
+            <!-- Apple Books Style Grid -->
+            <div id="books-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Reader View Modal (Apple Books Style Overlay) -->
+            <div id="reader-modal" class="fixed inset-0 bg-mono-950/80 z-50 flex flex-col hidden backdrop-blur-md">
+                <div class="flex items-center justify-between px-6 py-4 bg-mono-900 text-mono-50 border-b border-mono-800">
+                <span id="reader-title" class="font-mono text-sm font-medium truncate max-w-xl">Reading Document</span>
+                <button onclick="closeReader()" class="text-xs font-mono px-3 py-1.5 border border-mono-700 rounded hover:bg-mono-800 transition-colors">Close</button>
+                </div>
+                <div id="reader-viewer" class="flex-1 overflow-auto p-6 flex justify-center items-center bg-mono-950">
+                <!-- PDF / EPUB Content Renders Here -->
+                </div>
+            </div>
+        </section>
+        <!-- 7. STUDY PLAN MODULE -->
+        <section id="mod-study" class="tab-content space-y-6 hidden">
+            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-mono-200 dark:border-mono-800 pb-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">07. study plan</h2>
+                    <p class="text-xs text-mono-500 font-mono mt-0.5">Topic breakdowns & study target hours</p>
+                </div>
+                <button onclick="openStudyModal()" class="px-3.5 py-1.5 border border-mono-900 dark:border-mono-100 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg text-xs font-semibold hover:opacity-90">+ Add Session Target</button>
+            </header>
+
+            <div id="study-plans-container" class="space-y-3">
+                <!-- Study plans injected -->
+            </div>
+        </section>
+
+        <!-- 8. TIMETABLE MODULE -->
+        <section id="mod-timetable" class="tab-content space-y-6 hidden">
+            <header class="border-b border-mono-200 dark:border-mono-800 pb-4">
+                <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">08. weekly timetable</h2>
+                <p class="text-xs text-mono-500 font-mono mt-0.5">Weekly routine & class schedule viewer</p>
+            </header>
+
+            <div class="border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950 overflow-x-auto">
+                <div class="min-w-[700px]">
+                    <div class="grid grid-cols-8 gap-2 font-mono text-xs font-bold text-center border-b border-mono-200 dark:border-mono-800 pb-3">
+                        <span class="text-mono-400">Time</span>
+                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                    <div id="timetable-slots-grid" class="divide-y divide-mono-100 dark:divide-mono-900">
+                        <!-- Timetable grid injected -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. RESULT TRACKER MODULE -->
+        <section id="mod-results" class="tab-content space-y-6 hidden">
+            <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-mono-200 dark:border-mono-800 pb-4">
+                <div>
+                    <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">09. result tracker</h2>
+                    <p class="text-xs text-mono-500 font-mono mt-0.5">Academic grades & performance overview</p>
+                </div>
+                <button onclick="openResultModal()" class="px-3.5 py-1.5 border border-mono-900 dark:border-mono-100 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg text-xs font-semibold hover:opacity-90">+ Add Course Result</button>
+            </header>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Summary Card -->
+                <div class="border border-mono-200 dark:border-mono-800 rounded-xl p-5 bg-white dark:bg-mono-950 space-y-3 font-mono">
+                    <span class="text-[10px] text-mono-400 uppercase font-bold tracking-wider">Overall Average Grade</span>
+                    <div id="result-gpa-stat" class="text-4xl font-extrabold tracking-tighter">0.0%</div>
+                    <p class="text-xs text-mono-500" id="result-total-courses">0 courses recorded</p>
+                </div>
+
+                <!-- Course List -->
+                <div class="md:col-span-2 border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950 space-y-3">
+                    <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-mono-400">Course Breakdown</h3>
+                    <div id="results-container" class="space-y-3 max-h-[450px] overflow-y-auto pr-1">
+                        <!-- Results Injected -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="border border-mono-200 dark:border-mono-800 rounded-xl p-4 bg-white dark:bg-mono-950 space-y-3">
+                <div>
+                    <h3 class="text-xs font-mono font-bold uppercase tracking-wider text-mono-400">Performance analysis</h3>
+                    <p class="text-[10px] text-mono-500 font-mono mt-1">Actual grades compared with your targets</p>
+                </div>
+                <div id="results-analysis-chart" class="overflow-x-auto" role="img" aria-label="Chart comparing actual and target grades by course"></div>
+                <div class="flex gap-4 text-[10px] text-mono-500 font-mono" aria-hidden="true">
+                    <span><span class="inline-block w-2 h-2 rounded-full bg-mono-900 dark:bg-mono-100 mr-1"></span>Actual</span>
+                    <span><span class="inline-block w-2 h-2 rounded-full bg-mono-300 dark:bg-mono-700 mr-1"></span>Target</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 10. SETTINGS MODULE -->
+        <section id="mod-settings" class="tab-content space-y-6 hidden">
+            <header class="border-b border-mono-200 dark:border-mono-800 pb-4">
+                <h2 class="text-xl md:text-2xl font-bold tracking-tight lowercase">10. settings</h2>
+                <p class="text-xs text-mono-500 font-mono mt-0.5">Account details, help, and privacy controls</p>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <section class="border border-mono-200 dark:border-mono-800 rounded-xl p-5 bg-white dark:bg-mono-950 space-y-4">
+                    <div>
+                        <h3 class="font-bold">Notifications</h3>
+                        <p class="text-xs text-mono-500 mt-1">Receive event reminders and focus timer alerts on this device.</p>
+                    </div>
+                    <p id="notification-status" class="text-xs text-mono-500" role="status" aria-live="polite">Notifications are not enabled.</p>
+                    <button id="notification-toggle" onclick="requestNotificationToggle()" class="px-4 py-2 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg text-xs font-semibold hover:opacity-90">Enable notifications</button>
+                    <fieldset class="space-y-2 border-t border-mono-200 pt-3 dark:border-mono-800">
+                        <legend class="text-[10px] font-mono uppercase tracking-wider text-mono-500">Notification types</legend>
+                        <label class="flex items-center gap-2 text-xs">
+                            <input id="event-reminders-setting" type="checkbox" checked onchange="saveNotificationPreferences()">
+                            Event reminders
+                        </label>
+                        <label class="flex items-center gap-2 text-xs">
+                            <input id="timer-alerts-setting" type="checkbox" checked onchange="saveNotificationPreferences()">
+                            Focus timer alerts
+                        </label>
+                    </fieldset>
+                    <p class="text-[10px] text-mono-400">Push delivery requires HTTPS, browser permission, and push keys configured on the app server. Event reminders and running timer alerts can arrive while Focus is closed. Native live activities and device widgets require platform-specific apps.</p>
+                </section>
+                <section class="border border-mono-200 dark:border-mono-800 rounded-xl p-5 bg-white dark:bg-mono-950 space-y-4">
+                    <div>
+                        <h3 class="font-bold">Your account</h3>
+                        <p class="text-xs text-mono-500 mt-1">Account details stored by Focus.</p>
+                    </div>
+                    <dl class="space-y-3 text-sm">
+                        <div class="flex justify-between gap-4"><dt class="text-mono-500">Name</dt><dd id="settings-account-name" class="text-right">Loading...</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="text-mono-500">Email</dt><dd id="settings-account-email" class="text-right break-all">Loading...</dd></div>
+                        <div class="flex justify-between gap-4"><dt class="text-mono-500">Joined</dt><dd id="settings-account-created" class="text-right">Loading...</dd></div>
+                    </dl>
+                    <div class="border-t border-mono-200 dark:border-mono-800 pt-3">
+                        <h4 class="text-xs font-mono uppercase tracking-wider text-mono-500">Local data and sync</h4>
+                        <p id="settings-local-data" class="text-xs text-mono-500 mt-2">Loading local data summary...</p>
+                    </div>
+                    <p id="settings-account-status" class="text-xs text-mono-500" role="status" aria-live="polite"></p>
+                </section>
+
+                <section class="border border-mono-200 dark:border-mono-800 rounded-xl p-5 bg-white dark:bg-mono-950 space-y-4">
+                    <div>
+                        <h3 class="font-bold">Frequently asked questions</h3>
+                        <p class="text-xs text-mono-500 mt-1">How your account and app data work.</p>
+                    </div>
+                    <details class="text-sm">
+                        <summary class="cursor-pointer font-medium">Where is my account information stored?</summary>
+                        <p class="text-xs text-mono-500 mt-2">Your name and email are stored with your Focus account. Your password is protected and is never stored as plain text.</p>
+                    </details>
+                    <details class="text-sm">
+                        <summary class="cursor-pointer font-medium">Where are my tasks, notes, and other app data stored?</summary>
+                        <p class="text-xs text-mono-500 mt-2">Calendar events, tasks, notes, journal entries, book details and files, study plans, timetable, results, timer statistics, and theme preferences sync to your account. A local browser copy is kept for faster loading and offline fallback.</p>
+                    </details>
+                    <details class="text-sm">
+                        <summary class="cursor-pointer font-medium">What happens when I log out?</summary>
+                        <p class="text-xs text-mono-500 mt-2">Logging out removes the sign-in token from this browser. Your account and locally stored app data are not deleted.</p>
+                    </details>
+                    <details class="text-sm">
+                        <summary class="cursor-pointer font-medium">What happens when I delete my account?</summary>
+                        <p class="text-xs text-mono-500 mt-2">Your account, synced app data, uploaded book files, and this browser's saved app data are permanently deleted. This cannot be undone.</p>
+                    </details>
+                </section>
+
+                <section class="border border-mono-200 dark:border-mono-800 rounded-xl p-5 bg-white dark:bg-mono-950 space-y-3">
+                    <div>
+                        <h3 class="font-bold">Privacy and sign-in</h3>
+                        <p class="text-xs text-mono-500 mt-1">Permanently delete your account or end this session.</p>
+                    </div>
+                    <button id="settings-delete-account" onclick="deleteAccountPermanently()" class="px-4 py-2 border border-red-500/60 text-red-600 dark:text-red-400 rounded-lg text-xs font-semibold hover:bg-red-500/10 disabled:opacity-50 disabled:cursor-not-allowed">Delete account permanently</button>
+                    <p id="settings-deletion-status" class="text-xs text-mono-500" role="status" aria-live="polite"></p>
+                    <button onclick="logout()" class="block px-4 py-2 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg text-xs font-semibold hover:opacity-90">Log out</button>
+                </section>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODALS -->
+
+    <!-- Theme Selection Modal -->
+    <div id="theme-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="closeThemeModal()">
+        <div class="bg-white dark:bg-mono-950 border border-mono-200 dark:border-mono-800 rounded-xl p-4 w-full max-w-xs space-y-2 shadow-2xl" onclick="event.stopPropagation()">
+            <div class="space-y-1 font-mono" id="theme-options-container">
+                <!-- Dynamic minimalist option list injected here -->
+            </div>
+        </div>
+    </div>
+
+    <div id="notification-confirm-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden" onclick="closeNotificationConfirm()">
+        <div role="dialog" aria-modal="true" aria-labelledby="notification-confirm-title" aria-describedby="notification-confirm-description" class="w-full max-w-sm space-y-4 rounded-xl border border-mono-200 bg-white p-5 shadow-2xl dark:border-mono-800 dark:bg-mono-950" onclick="event.stopPropagation()">
+            <div class="space-y-1">
+                <h3 id="notification-confirm-title" class="font-bold">Enable notifications?</h3>
+                <p id="notification-confirm-description" class="text-xs text-mono-500"></p>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeNotificationConfirm()" class="rounded-lg border border-mono-200 px-4 py-2 text-xs font-semibold hover:bg-mono-100 dark:border-mono-800 dark:hover:bg-mono-900">No</button>
+                <button id="notification-confirm-yes" type="button" onclick="confirmNotificationToggle()" class="rounded-lg bg-mono-900 px-4 py-2 text-xs font-semibold text-white hover:opacity-90 dark:bg-mono-100 dark:text-mono-900">Yes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Add Modal -->
+    <div id="book-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-mono-950 border border-mono-200 dark:border-mono-800 rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+            <h3 class="font-bold text-sm font-mono uppercase tracking-wider">Add Reading Book</h3>
+            <form onsubmit="handleSaveBook(event)" class="space-y-3 text-xs">
+                <input type="text" id="book-title" placeholder="Book Title..." required class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none">
+                <input type="text" id="book-author" placeholder="Author Name..." required class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="book-current-page" placeholder="Current Page" required class="bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none font-mono">
+                    <input type="number" id="book-total-pages" placeholder="Total Pages" required class="bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none font-mono">
+                </div>
+                <select id="book-status" class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 font-mono focus:outline-none">
+                    <option value="Reading">Reading</option>
+                    <option value="Want to Read">Want to Read</option>
+                    <option value="Finished">Finished</option>
+                </select>
+                <div class="flex items-center justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeBookModal()" class="px-3 py-1.5 rounded-lg font-mono text-mono-500 hover:bg-mono-100 dark:hover:bg-mono-900">Cancel</button>
+                    <button type="submit" class="px-4 py-1.5 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg font-semibold">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Study Plan Modal -->
+    <div id="study-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-mono-950 border border-mono-200 dark:border-mono-800 rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+            <h3 class="font-bold text-sm font-mono uppercase tracking-wider">New Study Plan</h3>
+            <form onsubmit="handleSaveStudyPlan(event)" class="space-y-3 text-xs">
+                <input type="text" id="study-subject" placeholder="Subject / Course Name..." required class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none">
+                <input type="text" id="study-topic" placeholder="Topic Breakdown..." required class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="study-target-hours" placeholder="Target Hours" required class="bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none font-mono">
+                    <input type="date" id="study-deadline" required class="bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none font-mono">
+                </div>
+                <div class="flex items-center justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeStudyModal()" class="px-3 py-1.5 rounded-lg font-mono text-mono-500 hover:bg-mono-100 dark:hover:bg-mono-900">Cancel</button>
+                    <button type="submit" class="px-4 py-1.5 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg font-semibold">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Result Tracker Modal -->
+    <div id="result-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-mono-950 border border-mono-200 dark:border-mono-800 rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+            <h3 class="font-bold text-sm font-mono uppercase tracking-wider">Add Course Result</h3>
+            <form onsubmit="handleSaveResult(event)" class="space-y-3 text-xs">
+                <input type="text" id="result-subject" placeholder="Course Code / Subject..." required class="w-full bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none">
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" step="0.1" id="result-target" placeholder="Target %" required class="bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none font-mono">
+                    <input type="number" step="0.1" id="result-actual" placeholder="Actual %" required class="bg-mono-100 dark:bg-mono-900 border border-mono-200 dark:border-mono-800 rounded-lg p-2.5 focus:outline-none font-mono">
+                </div>
+                <div class="flex items-center justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeResultModal()" class="px-3 py-1.5 rounded-lg font-mono text-mono-500 hover:bg-mono-100 dark:hover:bg-mono-900">Cancel</button>
+                    <button type="submit" class="px-4 py-1.5 bg-mono-900 dark:bg-mono-100 text-white dark:text-mono-900 rounded-lg font-semibold">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    </div>
+
+    <!-- Modular Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/data-storage.js"></script>
+    <script src="js/login.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/calendar.js"></script>
+    <script src="js/tasks.js"></script>
+    <script src="js/notes.js"></script>
+    <script src="js/timer.js"></script>
+    <script src="js/journal.js"></script>
+    <script src="js/book.js"></script>
+    <script src="js/study.js"></script>
+    <script src="js/timetable.js"></script>
+    <script src="js/results.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

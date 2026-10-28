@@ -1,0 +1,167 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+#app-shell,
+#app-shell *:not(.app-logo):not(i[class*="fa-"]) {
+  font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+#app-shell .app-logo {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif !important;
+}
+
+/* Ultra-smooth lightweight theme transition variables */
+:root {
+--theme-ease: cubic-bezier(0.16, 1, 0.3, 1);
+--theme-duration: 0.4s;
+}
+
+/* Targeted smooth color and background transitions without extra DOM overhead */
+html.dark, html.dark *,
+html:not(.dark), html:not(.dark) * {
+transition-property: background-color, color, border-color, fill, stroke;
+transition-duration: var(--theme-duration);
+transition-timing-function: var(--theme-ease);
+}
+
+/* Strict monochrome aesthetic adjustments */
+::selection {
+background: #27272a;
+color: #ffffff;
+}
+.dark ::selection {
+background: #f4f4f5;
+color: #09090b;
+}
+
+/* Minimal scrollbars */
+::-webkit-scrollbar {
+width: 4px;
+height: 4px;
+}
+::-webkit-scrollbar-track {
+background: transparent;
+}
+::-webkit-scrollbar-thumb {
+background: rgba(161, 161, 170, 0.3);
+border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+background: rgba(161, 161, 170, 0.5);
+}
+
+/* Tab content animation */
+.tab-content {
+animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes fadeIn {
+from { opacity: 0; transform: translateY(2px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+/* Progress ring */
+.progress-ring-circle {
+transition: stroke-dashoffset 0.35s ease, stroke var(--theme-duration) var(--theme-ease);
+transform: rotate(-90deg);
+transform-origin: 50% 50%;
+}
+
+#app-shell .calendar-date-time {
+color-scheme: light;
+cursor: pointer;
+}
+.dark #app-shell .calendar-date-time {
+color-scheme: dark;
+}
+
+body {
+touch-action: manipulation;
+-webkit-tap-highlight-color: transparent;
+font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.dashboard-card {
+  border: 1px solid #e4e4e7;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 1rem;
+}
+.dark .dashboard-card {
+  border-color: #27272a;
+  background: #09090b;
+}
+.dashboard-card-title {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dashboard-link,
+.dashboard-chip {
+  border: 1px solid #e4e4e7;
+  border-radius: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  color: #71717a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.65rem;
+}
+.dark .dashboard-link,
+.dark .dashboard-chip {
+  border-color: #27272a;
+  color: #a1a1aa;
+}
+.dashboard-link:hover,
+.dashboard-chip:hover {
+  color: #18181b;
+  background: #f4f4f5;
+}
+.dark .dashboard-link:hover,
+.dark .dashboard-chip:hover {
+  color: #f4f4f5;
+  background: #18181b;
+}
+.dashboard-card-content {
+  min-height: 3.5rem;
+  margin-top: 0.85rem;
+}
+.results-chart {
+  display: block;
+  min-width: 620px;
+  width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.results-chart .chart-subject {
+  fill: #18181b;
+  font-size: 11px;
+  font-weight: 700;
+}
+.dark .results-chart .chart-subject {
+  fill: #f4f4f5;
+}
+.results-chart .chart-label {
+  fill: #71717a;
+  font-size: 9px;
+}
+.results-chart .chart-value {
+  fill: #52525b;
+  font-size: 10px;
+  font-weight: 700;
+}
+.dark .results-chart .chart-value {
+  fill: #d4d4d8;
+}
+.results-chart .chart-track {
+  fill: #f4f4f5;
+}
+.dark .results-chart .chart-track {
+  fill: #18181b;
+}
+.results-chart .chart-target {
+  fill: #a1a1aa;
+}
+.results-chart .chart-actual {
+  fill: #18181b;
+}
+.dark .results-chart .chart-actual {
+  fill: #f4f4f5;
+}

@@ -1,0 +1,17 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run requested npm build and tests",
+			"type": "shell",
+			"command": "cmd.exe",
+			"args": [
+				"/v:on",
+				"/c",
+				"cd /d \"D:\\My Projects\\Focus-with-database\\Focus\" & npm run build & echo BUILD_EXIT=!ERRORLEVEL! & npm test & echo TEST_EXIT=!ERRORLEVEL!"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "focus",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  "triggers": {
+    "crons": ["* * * * *"]
+  },
+
+  // The frontend (copied into ./dist by `npm run build`) is served as static assets.
+  // The Worker only runs for the API routes below.
+  "assets": {
+    "directory": "./dist",
+    "run_worker_first": ["/api/*", "/healthz"]
+  },
+
+  // SQLite database. After `wrangler d1 create focus-db`, paste the printed database_id here.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "focus-db",
+      "database_id": "REPLACE_WITH_YOUR_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Storage for uploaded PDF/EPUB files (create with `wrangler r2 bucket create focus-books`).
+  "r2_buckets": [
+    { "binding": "BOOKS", "bucket_name": "focus-books" }
+  ]
+
+  // Optional: only needed if the frontend is hosted on a different origin (e.g. GitHub Pages).
+  // , "vars": { "CORS_ORIGINS": "https://your-account.github.io" }
+}

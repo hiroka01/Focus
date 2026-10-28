@@ -1,0 +1,432 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+#auth-screen,
+#auth-screen *{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Montserrat', sans-serif;
+    transition-property: none;
+}
+
+#auth-screen{
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: linear-gradient(135deg, #f4f4f5, #d4d4d8);
+}
+
+#auth-screen .login-container{
+    position: relative;
+    width: 850px;
+    max-width: 100%;
+    height: 550px;
+    overflow: hidden;
+    border-radius: 30px;
+    background: #fff;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
+}
+
+#auth-screen h1{
+    color: #18181b;
+    font-size: 32px;
+    font-weight: 700;
+}
+
+#auth-screen .form-container{
+    position: absolute;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    width: 50%;
+    height: 100%;
+    visibility: hidden;
+    transition: transform 0.6s ease-in-out 1.2s, visibility 0s 1.2s;
+}
+
+#auth-screen .form-container form{
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 35px 48px;
+    background: #fff;
+}
+
+#auth-screen .sign-in{
+    left: 50%;
+    transform: translateX(0);
+    visibility: visible;
+}
+
+#auth-screen .login-container.active .sign-in{
+    transform: translateX(100%);
+    visibility: hidden;
+}
+
+#auth-screen .sign-up{
+    left: 0;
+    transform: translateX(-100%);
+}
+
+#auth-screen .login-container.active .sign-up{
+    transform: translateX(0);
+    visibility: visible;
+}
+
+#auth-screen .auth-input{
+    position: relative;
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+}
+
+#auth-screen .auth-input input{
+    width: 100%;
+    height: 48px;
+    padding: 0 44px 0 18px;
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    outline: none;
+    background: #f4f4f5;
+    color: #18181b;
+    font-size: 14px;
+}
+
+#auth-screen .auth-input input:focus{
+    border-color: #71717a;
+    box-shadow: 0 0 0 3px rgba(113, 113, 122, 0.14);
+}
+
+#auth-screen .auth-input input::placeholder{
+    color: #71717a;
+}
+
+#auth-screen .auth-input .field-icon{
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    display: inline-flex;
+    min-width: 16px;
+    align-items: center;
+    justify-content: center;
+    color: #52525b;
+    font-size: 15px;
+    font-weight: 600;
+    transform: translateY(-50%);
+}
+
+#auth-screen .forgot-password{
+    align-self: flex-end;
+    margin-top: 12px;
+    color: #3f3f46;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+#auth-screen .forgot-password:hover{
+    text-decoration: underline;
+}
+
+#auth-screen .form-container form > button{
+    width: 100%;
+    min-height: 46px;
+    margin-top: 18px;
+    border: 0;
+    border-radius: 8px;
+    background: #18181b;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+}
+
+#auth-screen .form-container form > button:hover{
+    background: #3f3f46;
+}
+
+#auth-screen .form-container form > button:disabled{
+    cursor: wait;
+    opacity: 0.7;
+}
+
+#auth-screen .auth-error{
+    width: 100%;
+    margin-top: 12px;
+    color: #b91c1c;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+#auth-screen .toggle-container{
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+#auth-screen .toggle-container::before{
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    width: 300%;
+    height: 100%;
+    content: "";
+    background: linear-gradient(135deg, #3f3f46, #09090b);
+    border-radius: 150px;
+    transform: translateX(-83.333333%);
+    transition: transform 1.8s ease-in-out;
+    pointer-events: none;
+}
+
+#auth-screen .login-container.active .toggle-container::before{
+    transform: translateX(16.666667%);
+}
+
+#auth-screen .toggle{
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    height: 100%;
+    color: #fff;
+    pointer-events: none;
+}
+
+#auth-screen .toggle-panel{
+    position: absolute;
+    top: 0;
+    display: flex;
+    width: 50%;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 36px;
+    text-align: center;
+    pointer-events: none;
+    transition: left 0.6s ease-in-out, right 0.6s ease-in-out;
+}
+
+#auth-screen .toggle-panel h1{
+    color: #fff;
+    font-size: 30px;
+}
+
+#auth-screen .toggle-panel p{
+    margin-top: 10px;
+    color: #e4e4e7;
+    font-size: 14px;
+}
+
+#auth-screen button.auth-toggle{
+    min-width: 150px;
+    min-height: 42px;
+    margin-top: 16px;
+    border: 1px solid #fff;
+    border-radius: 8px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    pointer-events: auto;
+}
+
+#auth-screen button.auth-toggle:hover{
+    background: rgba(255, 255, 255, 0.12);
+}
+
+#auth-screen .toggle-left{
+    left: 0;
+    transition-delay: 1.2s;
+}
+
+#auth-screen .login-container.active .toggle-left{
+    left: -50%;
+    transition-delay: 0.6s;
+}
+
+#auth-screen .toggle-right{
+    right: -50%;
+    transition-delay: 0.6s;
+}
+
+#auth-screen .login-container.active .toggle-right{
+    right: 0;
+    transition-delay: 1.2s;
+}
+
+#auth-screen .sr-only{
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+html.authenticated #auth-screen{
+    display: none;
+}
+
+html.authenticated #app-shell{
+    display: flex;
+}
+
+@media (max-width: 700px){
+    #auth-screen .login-container{
+        width: min(440px, 100%);
+        height: min(700px, calc(100dvh - 32px));
+        min-height: 0;
+        border-radius: 24px;
+    }
+
+    #auth-screen .toggle-container{
+        inset: 0;
+    }
+
+    #auth-screen .toggle-container::before{
+        top: 0;
+        width: 100%;
+        height: 300%;
+        border-radius: 20vw;
+        transform: translateY(-90%);
+        transition: transform 1.8s ease-in-out;
+    }
+
+    #auth-screen .login-container.active .toggle-container::before{
+        transform: translateY(23.333333%);
+    }
+
+    #auth-screen .toggle{
+        pointer-events: none;
+    }
+
+    #auth-screen .toggle-panel{
+        width: 100%;
+        height: 30%;
+        padding: 24px;
+        transition: top 0.6s ease-in-out, bottom 0.6s ease-in-out;
+    }
+
+    #auth-screen .toggle-panel h1{
+        font-size: 26px;
+    }
+
+    #auth-screen .toggle-panel p{
+        font-size: 13px;
+    }
+
+    #auth-screen .toggle-left{
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: auto;
+        transition-delay: 1.2s;
+    }
+
+    #auth-screen .login-container.active .toggle-left{
+        top: -30%;
+        left: 0;
+        transition-delay: 0.6s;
+    }
+
+    #auth-screen .toggle-right{
+        top: auto;
+        right: 0;
+        bottom: -30%;
+        left: 0;
+        transition-delay: 0.6s;
+    }
+
+    #auth-screen .login-container.active .toggle-right{
+        right: 0;
+        bottom: 0;
+        transition-delay: 1.2s;
+    }
+
+    #auth-screen .form-container{
+        top: auto;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 70%;
+        transform: none;
+        transition: bottom 0.6s ease-in-out 1.2s, visibility 0s 1.2s;
+    }
+
+    #auth-screen .login-container.active .form-container{
+        bottom: 30%;
+        transform: none;
+    }
+
+    #auth-screen .sign-in{
+        left: 0;
+        visibility: visible;
+    }
+
+    #auth-screen .login-container.active .sign-in{
+        visibility: hidden;
+    }
+
+    #auth-screen .sign-up{
+        left: 0;
+        visibility: hidden;
+    }
+
+    #auth-screen .login-container.active .sign-up{
+        visibility: visible;
+    }
+
+    #auth-screen .form-container form{
+        padding: 20px 34px;
+    }
+
+    #auth-screen h1{
+        font-size: 28px;
+    }
+
+    #auth-screen .auth-input{
+        margin-top: 12px;
+    }
+
+    #auth-screen .auth-input input{
+        height: 44px;
+    }
+
+}
+
+@media (max-width: 380px){
+    #auth-screen .form-container form{
+        padding-right: 22px;
+        padding-left: 22px;
+    }
+
+    #auth-screen .toggle-panel{
+        padding: 18px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    #auth-screen .form-container,
+    #auth-screen .toggle-container,
+    #auth-screen .toggle,
+    #auth-screen .toggle-container::before,
+    #auth-screen .toggle-panel{
+        transition-duration: 0.01ms;
+        transition-delay: 0s;
+    }
+}
