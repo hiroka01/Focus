@@ -19,7 +19,7 @@
     {
       "binding": "DB",
       "database_name": "focus-db",
-      "database_id": "REPLACE_WITH_YOUR_DATABASE_ID",
+      "database_id": "744ca917-aaa6-41c3-a3cc-6e3360efad65",
       "migrations_dir": "migrations"
     }
   ],
@@ -30,5 +30,5 @@
   ],
 
   // Frontend is hosted on different origin
-  "vars": { "CORS_ORIGINS": "https://your-account.github.io" }
+  "vars": { "CORS_ORIGINS": "https://hiroka01.github.io" }
 }
