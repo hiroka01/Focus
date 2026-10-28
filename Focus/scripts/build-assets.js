@@ -10,7 +10,7 @@ const dist = join(root, 'dist');
 rmSync(dist, { recursive: true, force: true });
 mkdirSync(dist, { recursive: true });
 
-for (const file of ['index.html', 'login.html', 'style.css', 'login.css', 'manifest.webmanifest', 'service-worker.js', 'icon.svg', 'js']) {
+for (const file of ['index.html', 'login.html', 'style.css', 'login.css', 'manifest.webmanifest', 'service-worker.js', 'icon.png', 'js']) {
     const source = join(root, file);
     if (!existsSync(source)) throw new Error(`Missing frontend file: ${file}`);
     cpSync(source, join(dist, file), { recursive: true });
