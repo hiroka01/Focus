@@ -27,8 +27,8 @@
   // Storage for uploaded PDF/EPUB files (create with `wrangler r2 bucket create focus-books`).
   "r2_buckets": [
     { "binding": "BOOKS", "bucket_name": "focus-books" }
-  ]
+  ],
 
-  // Optional: only needed if the frontend is hosted on a different origin (e.g. GitHub Pages).
-  // , "vars": { "CORS_ORIGINS": "https://your-account.github.io" }
+  // Frontend is hosted on different origin
+  "vars": { "CORS_ORIGINS": "https://your-account.github.io" }
 }
