@@ -1,0 +1,27 @@
+services:
+  focus:
+    build: .
+    container_name: focus
+    restart: unless-stopped
+    environment:
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in the .env file}
+      HOST: 0.0.0.0
+      PORT: 8787
+      DATABASE_PATH: /data/focus.sqlite
+      BOOKS_PATH: /data/books
+      PUSH_VAPID_PUBLIC_KEY: ${PUSH_VAPID_PUBLIC_KEY:-}
+      PUSH_VAPID_PRIVATE_JWK: ${PUSH_VAPID_PRIVATE_JWK:-}
+      PUSH_VAPID_SUBJECT: ${PUSH_VAPID_SUBJECT:-}
+    ports:
+      - "8787:8787"
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3

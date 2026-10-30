@@ -1,82 +1,119 @@
-# Focus database (serverless SQLite)
+# Focus: local and ZimaOS hosting
 
-Focus now has a real database: **Cloudflare D1**, which is SQLite running serverless.
-There is no database server to run, patch or pay for while idle. A small Worker
-(`src/worker.js`) exposes the API the frontend already calls, and also serves the app itself.
+Focus can run as a self-hosted Node.js app. Its API, SQLite database, and uploaded
+PDF/EPUB files are all stored on the same machine. The Cloudflare Worker/D1 setup
+is still available as an optional development/deployment path.
 
-```
-Browser ──► Cloudflare Worker ──► D1 (SQLite)   users + all app data
- (unchanged)  src/worker.js  └──► R2 bucket     uploaded PDF/EPUB files
-```
+## Run locally on Windows
 
-The frontend calls `/api/auth/*`, `/api/data/*`, `/api/books/*/file` and `/api/account/*`.
-Settings can permanently delete the account, its database data and uploaded book files.
+Requirements: Node.js 22.13 or newer and npm.
 
-## What's stored
+From PowerShell:
 
-Schema: `migrations/0001_init.sql`. Each user's data is in ordinary tables you can query:
-
-| Table | Holds |
-|---|---|
-| `users`, `sync_state` | accounts (PBKDF2-hashed passwords) |
-| `calendar_events`, `tasks`, `notes`, `journal_entries` | one row per item |
-| `books`, `study_plans`, `results` | one row per item |
-| `timetable_slots`, `pomo_stats`, `preferences` | timetable cells, timer stats, theme |
-
-Every row is keyed by `user_id` (cascade-deleted with the user). Any extra JSON field the
-app adds later is kept in an `extra` column, so nothing is lost. Book **files** live in R2,
-because D1 rows are capped at 2 MB; the book list/metadata is in `books`.
-
-## Run it locally
-
-```bash
+```powershell
+cd "D:\path\to\Focus"
 npm install
-cp .dev.vars.example .dev.vars        # then put a random 32+ byte value in AUTH_SECRET
-npm run dev                           # builds, creates the local SQLite DB, starts on :8787
+Copy-Item .dev.vars.example .dev.vars
 ```
 
-Open the URL Wrangler prints (not `index.html` directly). Local data is kept in `.wrangler/`.
+Edit `.dev.vars` and replace `AUTH_SECRET` with a random value of at least 32
+bytes. Generate one without printing it to the terminal:
 
-Run the API tests (no Wrangler or network needed; uses Node's built-in SQLite):
+```powershell
+node -e "require('node:fs').writeFileSync('.dev.vars', 'AUTH_SECRET=' + require('node:crypto').randomBytes(48).toString('base64url') + '\n')"
+```
 
-```bash
+Then start the app:
+
+```powershell
+npm run dev
+```
+
+Open <http://localhost:8787>. The app creates `data\focus.sqlite` for the
+database and stores uploaded book files in `data\books`. Both are local and
+ignored by Git. Run `npm test` for the API and persistence tests.
+
+If port 8787 is already being used, pick another port in the same PowerShell
+window before starting the app:
+
+```powershell
+$env:PORT = "8788"
+npm run dev
+```
+
+`npm run dev:cloudflare` runs the older Wrangler/D1 local setup instead.
+
+## Deploy to ZimaOS with Docker Compose
+
+This is the recommended setup when your data must stay on the home server. The
+container stores the SQLite database and book files in the `data` directory next
+to `compose.yaml`. The database is not exposed as a network service; only the
+Focus web app/API listens on port 8787.
+
+1. Copy or clone the `Focus` folder onto the ZimaOS server. It must include
+   `Dockerfile`, `compose.yaml`, `package.json`, `package-lock.json`, `src`,
+   `migrations`, `scripts`, and the frontend files.
+2. In that folder, create a `.env` file containing a unique secret. Generate it
+   on the server with:
+
+   ```sh
+   umask 077
+   printf 'AUTH_SECRET=%s\n' "$(openssl rand -base64 48 | tr -d '\n/+=' | cut -c1-64)" > .env
+   ```
+
+   Keep `.env` private; it is ignored by Git. Do not reuse the development
+   secret or post it in a support request.
+3. Build and start Focus:
+
+   ```sh
+   docker compose up -d --build
+   docker compose logs -f focus
+   ```
+
+4. On your home network, open `http://<ZIMAOS-LAN-IP>:8787`. Check
+   `http://<ZIMAOS-LAN-IP>:8787/healthz`; it should return `{"status":"ok"}`.
+5. In ZimaOS, you can also deploy `compose.yaml` as a custom Docker Compose app
+   instead of using SSH. Ensure the app's persistent host storage maps to `/data`
+   and that the configured `.env` secret is available to Compose.
+
+Commands to manage the service:
+
+```sh
+docker compose stop
+docker compose start
+docker compose up -d --build
+docker compose logs -f focus
+```
+
+The `./data:/data` bind mount is the persistent storage. Back up the entire
+`data` directory regularly, preferably while Focus is stopped. This includes
+both `focus.sqlite` and uploaded books.
+
+### Remote access
+
+For access outside your home network, use a VPN such as Tailscale or an HTTPS
+reverse proxy/tunnel. Do not forward the database (or port 8787 directly) from
+your router to the public internet. If you publish Focus behind a domain, enable
+HTTPS; browsers require a secure context for service workers and push
+notifications. The SQLite file itself stays on ZimaOS.
+
+### Existing Cloudflare data
+
+Switching to ZimaOS does not automatically copy accounts or data from a
+Cloudflare D1 database. Keep the old deployment and its backups until you have
+exported and verified any data you need. Do not point both deployments at the
+same SQLite file. New accounts and data created in the ZimaOS instance are
+stored locally on that server.
+
+## Cloudflare Wrangler (optional)
+
+The alternative Worker setup uses Cloudflare D1 and R2, not the ZimaOS storage:
+
+```sh
+npm install
+npm run dev:cloudflare
 npm test
 ```
 
-## Deploy
-
-```bash
-npx wrangler login
-npx wrangler d1 create focus-db            # copy the printed database_id into wrangler.jsonc
-npx wrangler r2 bucket create focus-books
-npm run db:migrate:remote                  # creates the tables
-npx wrangler secret put AUTH_SECRET        # paste a random 32+ byte value
-npm run deploy
-```
-
-Generate a secret with:
-`node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'))"`
-
-Changing `AUTH_SECRET` signs everyone out. Sessions last 24 hours.
-
-## Browse or back up the data
-
-```bash
-npx wrangler d1 execute focus-db --remote --command "SELECT id, email, created_at FROM users"
-npx wrangler d1 export focus-db --remote --output focus-backup.sql
-```
-
-## Notes
-
-- **Frontend on another host (e.g. GitHub Pages):** set `window.FOCUS_API_BASE_URL` in
-  `js/config.js` to the Worker URL and add `"vars": { "CORS_ORIGINS": "https://you.github.io" }`
-  in `wrangler.jsonc`.
-- **Changing the schema:** add `migrations/0002_*.sql` and run the migrate command again.
-  Never edit `0001`.
-- **Limits:** 1.5 MB of JSON per section, 5,000 items per section, 50 MB per book file.
-- **Account deletion:** the Settings action permanently deletes the account and all relational data,
-  uploaded R2 book files, and browser-local app data for that account.
-- **Password hashing** uses PBKDF2 (100,000 iterations, Workers' maximum). If signup/login
-  ever fails with a CPU-time error on the free plan, that is the cause; the paid plan lifts it.
-- The old Node/MySQL backend (`server.js`, Docker files) is untouched in git history but no
-  longer needed.
+To deploy that version, configure a Cloudflare D1 database, R2 bucket, and
+Worker secrets in `wrangler.jsonc`, then run `npm run deploy`.

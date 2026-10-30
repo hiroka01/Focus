@@ -17,8 +17,8 @@ self.addEventListener('push', event => {
     const title = typeof payload.title === 'string' ? payload.title : 'Focus';
     const options = {
         body: typeof payload.body === 'string' ? payload.body : 'You have a new Focus notification.',
-        icon: '/icon.png',
-        badge: '/icon.png',
+        icon: '/icon.svg',
+        badge: '/icon.svg',
         tag: typeof payload.tag === 'string' ? payload.tag : 'focus-notification',
         data: { url: typeof payload.url === 'string' ? payload.url : '/index.html' }
     };

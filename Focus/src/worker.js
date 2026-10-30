@@ -63,34 +63,36 @@ async function route(request, env, url) {
     return handleAccount(request, env, userId, pathname);
 }
 
+export async function handleRequest(request, env) {
+    const url = new URL(request.url);
+
+    if (!originAllowed(request, env, url)) return json(403, { error: 'This origin is not allowed.' });
+    const cors = corsHeaders(request, env);
+    if (request.method === 'OPTIONS') {
+        return request.headers.get('Origin')
+            ? new Response(null, { status: 204, headers: cors })
+            : json(400, { error: 'Origin header is required.' });
+    }
+
+    let response;
+    try {
+        response = await route(request, env, url);
+    } catch (error) {
+        if (error instanceof HttpError) {
+            response = json(error.status, { error: error.message });
+        } else {
+            console.error(`${request.method} ${url.pathname} failed:`, error);
+            response = json(500, { error: 'The request could not be completed. Please try again.' });
+        }
+    }
+    for (const [name, value] of Object.entries(cors)) response.headers.set(name, value);
+    return response;
+}
+
 export default {
     async scheduled(_controller, env, context) {
         context.waitUntil(deliverDueReminders(env));
     },
 
-    async fetch(request, env) {
-        const url = new URL(request.url);
-
-        if (!originAllowed(request, env, url)) return json(403, { error: 'This origin is not allowed.' });
-        const cors = corsHeaders(request, env);
-        if (request.method === 'OPTIONS') {
-            return request.headers.get('Origin')
-                ? new Response(null, { status: 204, headers: cors })
-                : json(400, { error: 'Origin header is required.' });
-        }
-
-        let response;
-        try {
-            response = await route(request, env, url);
-        } catch (error) {
-            if (error instanceof HttpError) {
-                response = json(error.status, { error: error.message });
-            } else {
-                console.error(`${request.method} ${url.pathname} failed:`, error);
-                response = json(500, { error: 'The request could not be completed. Please try again.' });
-            }
-        }
-        for (const [name, value] of Object.entries(cors)) response.headers.set(name, value);
-        return response;
-    }
+    fetch: handleRequest
 };

@@ -2,15 +2,20 @@
   "name": "focus",
   "private": true,
   "version": "1.0.0",
-  "description": "Focus workspace app with a serverless SQLite (Cloudflare D1) backend",
+  "description": "Focus workspace app with self-hosted SQLite and optional Cloudflare Workers support",
   "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "build": "node scripts/build-assets.js",
     "db:migrate:local": "wrangler d1 migrations apply focus-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply focus-db --remote",
-    "dev": "npm run build && npm run db:migrate:local && wrangler dev",
+    "dev": "npm run build && node --experimental-sqlite --env-file=.dev.vars src/server.js",
+    "dev:cloudflare": "npm run build && npm run db:migrate:local && wrangler dev",
+    "start": "node --experimental-sqlite src/server.js",
     "deploy": "npm run build && wrangler deploy",
-    "test": "node --test test/api.test.mjs"
+    "test": "node --test"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"
